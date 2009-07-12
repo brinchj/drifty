@@ -1,3 +1,7 @@
+#ifndef FORTUNA_H
+#define FORTUNA_H
+
+
 #include<sys/types.h>
 #include<sys/time.h>
 #include<pthread.h>
@@ -15,7 +19,7 @@
 
 typedef struct {
 	int updates;
-	Skein_512_Ctxt_t state;
+	Skein_256_Ctxt_t state;
 } pool_t;
 
 typedef struct {
@@ -34,3 +38,5 @@ void fortuna_get(fortuna_ctx *ctx, u8 *out);
 /** get full 32*256 bit state */
 void fortuna_extract(fortuna_ctx *ctx, u8 *out);
 
+
+#endif
