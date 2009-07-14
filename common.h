@@ -1,5 +1,5 @@
-#ifndef DRIFTY_H
-#define DRIFTY_H
+#ifndef COMMON_H
+#define COMMON_H
 
 /** SALSA 20 **/
 #ifndef ECRYPT_SYNC
