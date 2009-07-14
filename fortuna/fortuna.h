@@ -38,10 +38,10 @@ typedef struct {
 void fortuna_init(fortuna_ctx *ctx, int mask);
 
 /** get 256-bits output from PRNG */
-void fortuna_get(fortuna_ctx *ctx, u08b_t out[32]);
+void fortuna_get(fortuna_ctx *ctx, u64b_t r, u08b_t out[32]);
 
 /** get full 32*256 bit state */
-void fortuna_extract(fortuna_ctx *ctx, u08b_t *out[1024]);
+void fortuna_full(fortuna_ctx *ctx, u08b_t out[1024]);
 
 
 #include "fortuna.c"
