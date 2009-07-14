@@ -125,6 +125,7 @@ void fortuna_get(fortuna_ctx *ctx, u64b_t r, u08b_t out[32]) {
 		Skein_256_Final(&ctx->pools[i]->state, buffer);
 		Skein_256_Update(&state, buffer, 32);
 		Skein_256_Update(&ctx->pools[i]->state, mark, 2);
+		ctx->pools[i]->updates = 0;
 		pthread_mutex_unlock(&ctx->pools[i]->mutex);
 	}
 	Skein_256_Final(&state, out);
@@ -132,4 +133,7 @@ void fortuna_get(fortuna_ctx *ctx, u64b_t r, u08b_t out[32]) {
 
 
 void fortuna_full(fortuna_ctx *ctx, u08b_t out[1024]) {
+	int i;
+	for(i = 0; i < 32; i++)
+		Skein_256_Final(&ctx->pools[i]->state, &out[i*32]);
 }
