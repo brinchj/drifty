@@ -77,7 +77,6 @@ void fortuna_collector(fortuna_ctx *ctx, u08b_t id) {
 }
 
 void* fortuna_thread(fortuna_thread_ctx *ctx) {
-	//printf("%u\n", ctx->fortuna_ctx->pools[0]->updates);
 	fortuna_collector(ctx->fortuna_ctx, ctx->id);
 }
 
