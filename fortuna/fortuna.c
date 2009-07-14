@@ -13,16 +13,14 @@ u64b_t time64(int type) {
 }
 
 
-u08b_t BUFFER[4096];
+Skein_256_Ctxt_t HASH_STATE;
+u08b_t BUFFER[32];
 
 
 void rounds(n) {
 	int i;
-	ECRYPT_ctx ctx;
-	ECRYPT_keysetup(&ctx, BUFFER, 256, 8);
-	ECRYPT_ivsetup(&ctx,  BUFFER);
 	for(i = 0; i < n; i++) {
-		ECRYPT_encrypt_bytes(&ctx, BUFFER, BUFFER, 4096);
+		Skein_256_Update(&HASH_STATE, BUFFER, 32);
 	}
 }
 
@@ -70,6 +68,10 @@ void fortuna_init(fortuna_ctx *ctx, int mask) {
 		/** add current time */
 		Skein_256_Update(pool->state, &t, sizeof(u64b_t));
 	}
+
+	/** Initialize Skein global state */
+	Skein_256_Init(&HASH_STATE, 256);
+
 	if (mask | FORTUNA_INIT_THREADS) {
 		//for(i = ; i < FORTUNA_THREAD_NUM; i++) {
 		for(i = 0; i < 12; i++) {
