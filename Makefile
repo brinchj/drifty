@@ -1,7 +1,7 @@
 
 CC=gcc
 FLAGS=-O2
-LIB=skein/*.c salsa20/*.c /usr/include/pthread.h -lrt
+LIB=skein/*.c salsa20/*.c drifty.h /usr/include/pthread.h -lrt
 ARG=-pthread
 
 all:
