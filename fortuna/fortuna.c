@@ -5,6 +5,7 @@
 #include<time.h>
 #include<malloc.h>
 #include<string.h>
+#include<stdio.h>
 
 
 /** Time Functions */

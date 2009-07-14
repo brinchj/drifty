@@ -1,15 +1,21 @@
+#include<stdlib.h>
 #include<stdio.h>
 #include<malloc.h>
 #include<time.h>
 
 #include "common.h"
 #include "fortuna/fortuna.h"
-
+#include "drifty.h"
 
 int main() {
 
+	drifty_ctx dctx;
+	drifty_init(&dctx);
+
 	fortuna_ctx *ctx = malloc(sizeof(ctx));
 	fortuna_init(ctx, 0);
+
+	exit(1);
 
 	int i, j;
 	while(ctx->pools[0]->updates < 16) {
