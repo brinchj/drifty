@@ -6,21 +6,23 @@
 #include<string.h>
 
 
-u64b_t time64(int type) {
+u64b_t fortuna_time64(int type) {
 	struct timespec ts;
 	clock_gettime(type, &ts);
 	return ts.tv_nsec;
 }
 
 
-Skein_256_Ctxt_t HASH_STATE;
-u08b_t BUFFER[32];
+Skein_256_Ctxt_t fortuna_HASH_STATE;
+u08b_t fortuna_BUFFER[32];
 
 
-void rounds(n) {
+void fortuna_rounds(n) {
+	Skein_256_Init(&fortuna_HASH_STATE, 256);
 	int i;
 	for(i = 0; i < n; i++) {
-		Skein_256_Update(&HASH_STATE, BUFFER, 32);
+		Skein_256_Update(&fortuna_HASH_STATE,
+				 fortuna_BUFFER, 32);
 	}
 }
 
@@ -30,11 +32,11 @@ void fortuna_collector(fortuna_ctx *ctx, int id) {
 	i = 0;
 	id = 1 << id;
 	while(1) {
-		rt0 = time64(CLOCK_MONOTONIC);
-		tr0 = time64(CLOCK_THREAD_CPUTIME_ID);
-		rounds(id);
-		tr1 = time64(CLOCK_THREAD_CPUTIME_ID);
-		rt1 = time64((CLOCK_MONOTONIC));
+		rt0 = fortuna_time64(CLOCK_MONOTONIC);
+		tr0 = fortuna_time64(CLOCK_THREAD_CPUTIME_ID);
+		fortuna_rounds(id);
+		tr1 = fortuna_time64(CLOCK_THREAD_CPUTIME_ID);
+		rt1 = fortuna_time64((CLOCK_MONOTONIC));
 
 		u32b_t ent = (rt1-rt0) - (tr1-tr0) & 0xFF;
 		Skein_256_Update(ctx->pools[i]->state, &ent, 1);
@@ -53,7 +55,7 @@ void *fortuna_thread(fortuna_thread_ctx *ctx) {
 
 
 void fortuna_init(fortuna_ctx *ctx, int mask) {
-	u64b_t t = time64(CLOCK_MONOTONIC);
+	u64b_t t = fortuna_time64(CLOCK_MONOTONIC);
 	u32b_t i;
 	ctx->pools[0]   = calloc(FORTUNA_POOL_NUM  , sizeof(long));
 	ctx->threads[0] = calloc(FORTUNA_THREAD_NUM, sizeof(long));
@@ -70,7 +72,7 @@ void fortuna_init(fortuna_ctx *ctx, int mask) {
 	}
 
 	/** Initialize Skein global state */
-	Skein_256_Init(&HASH_STATE, 256);
+	Skein_256_Init(&fortuna_HASH_STATE, 256);
 
 	if (mask | FORTUNA_INIT_THREADS) {
 		//for(i = ; i < FORTUNA_THREAD_NUM; i++) {
