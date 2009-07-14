@@ -60,9 +60,17 @@ void fortuna_collector(fortuna_ctx *ctx, u08b_t id) {
 	while(1) {
 		usleep(20000);
 		buffer[1] = fortuna_getbyte() ^ fortuna_getbyte();
-		Skein_256_Update(ctx->pools[i]->state,
+
+		/** lock pool */
+		pthread_mutex_lock(&ctx->pools[i]->mutex);
+
+		/** update pool */
+		Skein_256_Update(&ctx->pools[i]->state,
 				 buffer, 2);
 		ctx->pools[i]->updates += 1;
+
+		/** unlock pool */
+		pthread_mutex_unlock(&ctx->pools[i]->mutex);
 
 		i = (i+1) & 0x1F;
 	}
@@ -82,19 +90,18 @@ void fortuna_init(fortuna_ctx *ctx, int mask) {
 	ctx->pools[0]   = calloc(FORTUNA_POOL_NUM  , sizeof(long));
 	for(i = 0; i < FORTUNA_POOL_NUM; i++) {
 		fortuna_pool_t *pool = malloc(sizeof(fortuna_pool_t));
-		ctx->pools[i] = pool;
 		pool->updates = 0;
-		pool->state = malloc(sizeof(Skein_256_Ctxt_t));
-		Skein_256_Init(pool->state, 256);
+		pthread_mutex_init(&pool->mutex, NULL);
+		Skein_256_Init(&pool->state, 256);
 		/** add pool id */
-		Skein_256_Update(pool->state, (u08b_t*) &i, sizeof(u32b_t));
+		Skein_256_Update(&pool->state, (u08b_t*) &i, sizeof(u32b_t));
 		/** add current time */
-		Skein_256_Update(pool->state, (u08b_t*) &ts,
+		Skein_256_Update(&pool->state, (u08b_t*) &ts,
 				 sizeof(struct timespec));
+		ctx->pools[i] = pool;
 	}
 
 	if (mask | FORTUNA_INIT_COLLECTOR) {
-		ctx->collector = malloc(sizeof(pthread_t));
 		fortuna_thread_ctx *tctx = malloc(sizeof(tctx));
 		tctx->id = i+1;
 		tctx->fortuna_ctx = ctx;

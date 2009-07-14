@@ -17,14 +17,14 @@
 
 
 typedef struct {
-	unsigned int updates;
-	Skein_256_Ctxt_t *state;
+	pthread_mutex_t   mutex;
+	unsigned int      updates;
+	Skein_256_Ctxt_t  state;
 } fortuna_pool_t;
 
 typedef struct {
 	struct timeval last_reseed;
 	fortuna_pool_t  *pools[FORTUNA_POOL_NUM];
-	pthread_mutex_t  locks[FORTUNA_POOL_NUM];
 	pthread_t        collector;
 } fortuna_ctx ;
 
