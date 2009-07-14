@@ -9,7 +9,7 @@
 #include "../common.h"
 
 
-#define FORTUNA_THREAD_NUM 12
+#define FORTUNA_THREAD_NUM 1
 #define FORTUNA_POOL_NUM   32
 
 #define FORTUNA_INIT_THREADS 0x01
