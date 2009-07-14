@@ -80,7 +80,6 @@ void fortuna_init(fortuna_ctx *ctx, int mask) {
 
 	u32b_t i;
 	ctx->pools[0]   = calloc(FORTUNA_POOL_NUM  , sizeof(long));
-	ctx->threads[0] = calloc(FORTUNA_THREAD_NUM, sizeof(long));
 	for(i = 0; i < FORTUNA_POOL_NUM; i++) {
 		fortuna_pool_t *pool = malloc(sizeof(fortuna_pool_t));
 		ctx->pools[i] = pool;
@@ -94,16 +93,13 @@ void fortuna_init(fortuna_ctx *ctx, int mask) {
 				 sizeof(struct timespec));
 	}
 
-	if (mask | FORTUNA_INIT_THREADS) {
-		for(i = 0; i < FORTUNA_THREAD_NUM; i++) {
-			ctx->threads[i] = malloc(sizeof(pthread_t));
-			fortuna_thread_ctx *tctx = malloc(sizeof(tctx));
-			tctx->id = i+1;
-			tctx->fortuna_ctx = ctx;
-			pthread_create(ctx->threads[i], NULL,
-				       (void*) fortuna_thread, (void*) tctx);
-		}
-		pthread_join(*ctx->threads[0], NULL);
+	if (mask | FORTUNA_INIT_COLLECTOR) {
+		ctx->collector = malloc(sizeof(pthread_t));
+		fortuna_thread_ctx *tctx = malloc(sizeof(tctx));
+		tctx->id = i+1;
+		tctx->fortuna_ctx = ctx;
+		pthread_create(&ctx->collector, NULL,
+			       (void*) fortuna_thread, (void*) tctx);
 	}
 }
 

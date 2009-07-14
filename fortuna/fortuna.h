@@ -12,8 +12,8 @@
 #define FORTUNA_THREAD_NUM 1
 #define FORTUNA_POOL_NUM   32
 
-#define FORTUNA_INIT_THREADS 0x01
-#define FORTUNA_INIT_ALL     0xFF
+#define FORTUNA_INIT_COLLECTOR 0x01
+#define FORTUNA_INIT_ALL       0xFF
 
 
 typedef struct {
@@ -23,8 +23,9 @@ typedef struct {
 
 typedef struct {
 	struct timeval last_reseed;
-	fortuna_pool_t *pools[FORTUNA_POOL_NUM];
-	pthread_t      *threads[FORTUNA_THREAD_NUM];
+	fortuna_pool_t  *pools[FORTUNA_POOL_NUM];
+	pthread_mutex_t  locks[FORTUNA_POOL_NUM];
+	pthread_t        collector;
 } fortuna_ctx ;
 
 typedef struct {
