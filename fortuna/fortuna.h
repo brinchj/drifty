@@ -6,7 +6,7 @@
 #include<sys/time.h>
 #include<pthread.h>
 
-#include "../drifty.h"
+#include "../common.h"
 
 
 #define FORTUNA_THREAD_NUM 12
