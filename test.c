@@ -12,7 +12,7 @@ int main() {
 	fortuna_init(ctx, 0);
 
 	int i;
-	for(i = 0; i < 1000; i++) {
+	for(i = 0; i < 2000; i++) {
 		printf("%d -> %2d updates.\n", i, ctx->pools[0]->updates);
 		sleep(1);
 	}
