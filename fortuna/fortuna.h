@@ -43,4 +43,7 @@ void fortuna_get(fortuna_ctx *ctx, u08b_t out[32]);
 void fortuna_extract(fortuna_ctx *ctx, u08b_t *out[1024]);
 
 
+#include "fortuna.c"
+
+
 #endif

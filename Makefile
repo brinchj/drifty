@@ -1,3 +1,12 @@
 
+CC=gcc
+FLAGS=-O2
+LIB=skein/*.c salsa20/*.c /usr/include/pthread.h -lrt
+ARG=-pthread
+
 all:
-	gcc -O2 -o test skein/*.c salsa20/*.c /usr/include/pthread.h -lrt -pthread test.c
+	${CC} ${FLAGS} -o test ${LIB} ${ARG} test.c
+
+drifter:
+	${CC} ${FLAGS} -o tools/drifter ${LIB} ${ARG} tools/drifter.c
+
