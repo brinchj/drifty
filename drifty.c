@@ -8,7 +8,7 @@ void drifty_init(drifty_ctx *ctx) {
 	/** wait for some entropy to arrive */
 	int prev = -1;
 	int cur ;
-	while(0 && (cur = ctx->fortuna_ctx.pools[0]->updates) < 64) {
+	while((cur = ctx->fortuna_ctx.pools[0]->updates) < 64) {
 		sleep(1);
 		if(cur != prev) {
 			prev = cur;
@@ -27,15 +27,12 @@ void drifty_init(drifty_ctx *ctx) {
 	/** warm up the prng state */
 	printf("> mixing state ");
 	for(i = 0; i < 64; i++) {
-		//sleep(1);
+		sleep(1);
 		drifty_block(ctx, buffer);
 		printf(".");
 		fflush(stdout);
 	}
 	printf("\n");
-
-	for(i = 0; i < 1024*16; i++)
-		drifty_block(ctx, buffer);
 }
 
 
