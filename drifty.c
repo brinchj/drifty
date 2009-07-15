@@ -8,7 +8,7 @@ void drifty_init(drifty_ctx *ctx) {
 	/** wait for some entropy to arrive */
 	int prev = -1;
 	int cur ;
-	while((cur = ctx->fortuna_ctx.pools[0]->updates) < 64) {
+	while(0 && (cur = ctx->fortuna_ctx.pools[0]->updates) < 64) {
 		sleep(1);
 		if(cur != prev) {
 			prev = cur;
@@ -18,7 +18,7 @@ void drifty_init(drifty_ctx *ctx) {
 	}
 	printf("\n");
 
-	u08b_t buffer[1024];
+	u08b_t buffer[BLOCK_SIZE];
 	fortuna_full(&ctx->fortuna_ctx, buffer);
 	int i;
 	for(i = 0; i < 1024; i++)
@@ -27,30 +27,36 @@ void drifty_init(drifty_ctx *ctx) {
 	/** warm up the prng state */
 	printf("> mixing state ");
 	for(i = 0; i < 64; i++) {
-		sleep(1);
+		//sleep(1);
 		drifty_block(ctx, buffer);
 		printf(".");
 		fflush(stdout);
 	}
 	printf("\n");
 
+	for(i = 0; i < 1024*16; i++)
+		drifty_block(ctx, buffer);
 }
 
 
 void drifty_block(drifty_ctx *ctx, u08b_t *out) {
 	Skein1024_Ctxt_t state;
-	Skein1024_Init(&state, 1024);
+	Skein1024_Init(&state, STATE_SIZE*8 + BLOCK_SIZE*8);
+	Skein1024_Update(&state, (u08b_t*) &ctx->count, sizeof(u64b_t));
 	Skein1024_Update(&state, ctx->state, STATE_SIZE);
 
-	u08b_t buffer[128];
+	u08b_t buffer[STATE_SIZE + BLOCK_SIZE];
 	Skein1024_Final(&state, buffer);
 
-	memcpy(&ctx->state, &buffer[(ctx->count << 6) % STATE_SIZE], 64);
-	ECRYPT_encrypt_bytes(&ctx->stream_ctx, ctx->state,
-			     ctx->state, STATE_SIZE);
-	ECRYPT_encrypt_bytes(&ctx->stream_ctx, buffer, buffer, 32);
-	ECRYPT_keysetup(&ctx->stream_ctx, buffer, 32, 8);
-	ctx->count += 1;
 
-	memcpy(out, &buffer[64], 64);
+	ECRYPT_encrypt_blocks(&ctx->stream_ctx, buffer, buffer,
+			      (STATE_SIZE+BLOCK_SIZE)/64);
+	ECRYPT_keysetup(&ctx->stream_ctx, buffer, 256, 64);
+	ECRYPT_ivsetup(&ctx->stream_ctx, &buffer[32]);
+
+	memcpy(buffer, &ctx->state,         STATE_SIZE);
+	memcpy(out,    &buffer[STATE_SIZE], BLOCK_SIZE);
+	memset(buffer, 0, STATE_SIZE + BLOCK_SIZE);
+
+	ctx->count += 1;
 }

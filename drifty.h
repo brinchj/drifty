@@ -7,6 +7,7 @@
 
 
 #define STATE_SIZE 256
+#define BLOCK_SIZE 4096
 
 
 typedef struct {
