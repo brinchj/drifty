@@ -5,9 +5,13 @@
 #include "skein/skein.h"
 #include "fortuna/fortuna.h"
 
+
+#define STATE_SIZE 256
+
+
 typedef struct {
 	u64b_t      count;
-	u08b_t      state[1024];
+	u08b_t      state[STATE_SIZE];
 	ECRYPT_ctx  stream_ctx;
 	fortuna_ctx fortuna_ctx;
 } drifty_ctx;
