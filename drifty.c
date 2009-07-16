@@ -10,19 +10,19 @@ void drifty_init(drifty_ctx *ctx) {
 		ctx->count = (ctx->count << 8) | fortuna_getbyte();
 
 	/** fill state with entropy */
+	printf("> collect entropy    %3.2f", 0.0);
 	u08b_t buffer[BLOCK_SIZE];
-	printf("> collect entropy    |");
-	for(j = 0; j < STATE_SIZE/4; j++) {
+	for(j = 0; j < STATE_SIZE; j++) {
 		usleep(10000);
 		// add entropy
 		for(i = 0; i < STATE_SIZE; i++)
 			ctx->state[i] ^= fortuna_getbyte();
 		// mix state
 		drifty_block(ctx, buffer);
-		printf("=");
+		printf("\r> collect entropy    %.2f", ((float)j)/STATE_SIZE);
 		fflush(stdout);
 	}
-	printf("|\n");
+	printf("\n");
 
 	/** initialize entropy collection */
 	fortuna_init(&ctx->fortuna_ctx, FORTUNA_INIT_ALL);
