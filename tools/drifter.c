@@ -1,13 +1,9 @@
-#include "../drifty.h"
+#include "../common.h"
 
 #include<stdlib.h>
 #include<stdio.h>
 #include<time.h>
 
-
-#define SIZE 393216
-
-char D_BUFFER[SIZE];
 
 struct timespec diff(struct timespec start, struct timespec end)
 {
@@ -22,48 +18,61 @@ struct timespec diff(struct timespec start, struct timespec end)
 	return temp;
 }
 
-
-void fill_bytes(int r) {
-	int i;
+#define SIZE 128
+uint BYTES = 0;
+void *out_bytes(int verbose) {
+	int i = 0;
 	struct timespec wc_bgn, tr_bgn, wc_end, tr_end,
 		drift;
-	for(i = 0; i < SIZE; i++) {
-		if (i % 0x1000 == 0)
-			printf("%d\n", i);
-		clock_gettime(CLOCK_MONOTONIC, &wc_bgn);
-		clock_gettime(CLOCK_THREAD_CPUTIME_ID, &tr_bgn);
-		//rounds(r);
-		int j;
-		for(j = 0; j < r; j++) {
-			usleep(1);
+	u08b_t buffer[SIZE];
+	while(1) {
+		if (verbose && (BYTES % 0x400 == 0))
+			fprintf(stderr, "bytes: %12d\n", BYTES);
+		for(i = 0; i < SIZE; i++) {
+			int byte = 0, k;
+			for(k = 0; k < 8; k++) {
+				clock_gettime(CLOCK_MONOTONIC, &wc_bgn);
+				clock_gettime(CLOCK_THREAD_CPUTIME_ID, &tr_bgn);
+				rounds(128);
+				clock_gettime(CLOCK_THREAD_CPUTIME_ID, &tr_end);
+				clock_gettime(CLOCK_MONOTONIC, &wc_end);
+				drift = diff(diff(tr_bgn, tr_end),
+					     diff(wc_bgn, wc_end));
+				byte = (byte<<1);
+				int n = drift.tv_nsec;
+				while (n) {
+					byte ^= n&1;
+					n >>= 1;
+				}
+			}
+			buffer[i] = byte;
 		}
-		clock_gettime(CLOCK_MONOTONIC, &wc_end);
-		clock_gettime(CLOCK_THREAD_CPUTIME_ID, &tr_end);
-
-		drift = diff(diff(wc_bgn, wc_end), diff(tr_bgn, tr_end));
-		D_BUFFER[i] = drift.tv_nsec & 0xFF;
+		BYTES += SIZE;
+		fwrite(buffer, 1, SIZE, stdout);
 	}
 }
 
 
+
+#define THREADS 0
+
 int main(int argc, char** argv) {
-	if(argc < 3) {
+	if(argc < 2) {
 		printf("Too few arguments.\n");
 		printf("usage: %s rounds outfile\n", argv[0]);
 		exit(1);
 	}
 
-	int rounds = atoi(argv[1]);
-	printf("rounds: %d\n", rounds);
 
-	char* outfile = argv[2];
-	printf("outfile: %s\n", outfile);
+	pthread_t threads[THREADS];
+	int i;
+	int verbose = 0;
+	for(i = 0; i < THREADS; i++) {
+		threads[i] = malloc(sizeof(pthread_t));
+		pthread_create(threads[i], NULL, out_bytes, (void*)verbose);
+		usleep(1);
+	}
 
-	fill_bytes(rounds);
-
-	FILE* fd = fopen(outfile, "wb");
-	int count = fwrite(D_BUFFER, 1, SIZE, fd);
-	printf("wrote %d bytes..\n", count);
-	fclose(fd);
+	out_bytes(1);
 
 }
