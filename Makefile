@@ -11,3 +11,6 @@ all:
 drifter:
 	${CC} ${FLAGS} -o tools/drifter ${LIB} ${ARG} tools/drifter.c
 
+test-prng:
+	${CC} ${FLAGS} -o tools/test-prng ${LIB} ${ARG} tools/test-prng.c
+
