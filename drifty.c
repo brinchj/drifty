@@ -49,12 +49,12 @@ void drifty_block(drifty_ctx *ctx, u08b_t *out) {
 
 	/** update state and output */
 	const int flag = ctx->count & 1;
-
-	/** encrypt non-overwritten state */
-	u08b_t *st = &buffer[(!flag) * STATE_SIZE/2];
-	ECRYPT_encrypt_blocks(&ctx->stream_ctx, st, st, (STATE_SIZE/2)/64);
 	memcpy(buffer, &ctx->state[flag * STATE_SIZE/2], STATE_SIZE/2);
 	memcpy(out,    &buffer[STATE_SIZE/2], BLOCK_SIZE);
+
+	/** encrypt state */
+	ECRYPT_encrypt_blocks(&ctx->stream_ctx, ctx->state, ctx->state,
+			      STATE_SIZE/64);
 
 	/** change Salsa20 key */
 	u08b_t key_iv[64];
