@@ -34,13 +34,15 @@ void fortuna_handler(int sig) {
 	fortuna_flag = 0;
 	signal(sig, fortuna_handler);
 }
+
+int DELAY = 40;
 u08b_t fortuna_getbyte() {
 	struct timespec tr0, tr1, wc0, wc1;
 	fortuna_times(&wc0, &tr0);
 
 	/** set handler and schedule alarm */
 	signal(SIGALRM, fortuna_handler);
-	ualarm(39);
+	ualarm(DELAY);
 	/** wait for signal */
 	long int count = 0;
 	while(fortuna_flag)
@@ -49,7 +51,17 @@ u08b_t fortuna_getbyte() {
 	/** read stop times */
 	fortuna_times(&wc1, &tr1);
 	/** return random byte */
-	return diff(diff(tr0, tr1), diff(wc0, wc1)).tv_nsec + count;
+	int tmp = diff(diff(tr0, tr1), diff(wc0, wc1)).tv_nsec + count;
+	u08b_t ent = 0;
+	while(tmp) {
+		ent ^= tmp & 255;
+		tmp >>= 8;
+	}
+	return ent;
+}
+u08b_t fortuna_getwbyte() {
+	u08b_t tmp = fortuna_getbyte();
+	return fortuna_getbyte() ^ (tmp << 4) ^ (tmp >> 4);
 }
 
 
@@ -60,7 +72,7 @@ void fortuna_collector(fortuna_ctx *ctx, u08b_t id) {
 	buffer[0] = id;
 	while(1) {
 		usleep(20000);
-		buffer[1] = fortuna_getbyte() ^ fortuna_getbyte();
+		buffer[1] = fortuna_getwbyte();
 
 		/** lock pool */
 		pthread_mutex_lock(&ctx->pools[i]->mutex);
@@ -81,6 +93,35 @@ void* fortuna_thread(fortuna_thread_ctx *ctx) {
 	fortuna_collector(ctx->fortuna_ctx, ctx->id);
 }
 
+
+void fortuna_benchmark() {
+	DELAY = 20;
+	u08b_t counts[16];
+	int i,j,rnd;
+
+	const rounds = 1024;
+	const expect = (rounds*2) / 16;
+	const limit  = 4246;
+
+	while(!rnd) {
+		rnd = 1;
+		for(j = 0; rnd && j < 16; j++) {
+			memset(counts, 0, 16);
+			for(i = 0; i < rounds; i++) {
+				u08b_t byte = fortuna_getbyte();
+				counts[byte &  0x0F] += 1;
+				counts[byte >>    4] += 1;
+			}
+			u64b_t sum = 0;
+			for(i = 0; i < 16; i++) {
+				sum += (counts[i]-expect)*(counts[i]-expect);
+			}
+			double chi2 = sum / expect;
+			if(chi2 > limit) rnd = 0;
+		}
+		if (!rnd) DELAY += DELAY / 2;
+	}
+}
 
 void fortuna_init(fortuna_ctx *ctx, int mask) {
 	struct timespec ts;

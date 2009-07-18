@@ -4,6 +4,9 @@
 void drifty_init(drifty_ctx *ctx) {
 	int i,j;
 
+	/** run fortuna benchmark */
+	fortuna_benchmark();
+
 	/** randomize counter offset */
 	ctx->count = 0;
 	for(i = 0; i < 8; i++)
