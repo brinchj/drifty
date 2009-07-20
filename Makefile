@@ -5,7 +5,12 @@ LIB=skein/skein.c skein/skein_block.c \
 	salsa20/salsa20.c drifty.h /usr/include/pthread.h -lrt
 ARG=-pthread
 
+
 all:
+	${CC} ${FLAGS} -m64 -o drifty ${LIB} ${ARG} daemon.c
+
+
+test-drift:
 	${CC} ${FLAGS} -o test ${LIB} ${ARG} test.c
 
 drifter:
