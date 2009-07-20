@@ -29,33 +29,41 @@ struct timespec fortuna_times(struct timespec *wc,
 
 
 /** Simple RNG based on Time Drift */
+int DELAY = 20;
+
 volatile sig_atomic_t fortuna_flag = 1;
-void fortuna_handler(int sig) {
+void fortuna_signaler() {
+	usleep(DELAY);
 	fortuna_flag = 0;
-	signal(sig, fortuna_handler);
+	pthread_exit(NULL);
 }
 
-int DELAY = 40;
 u08b_t fortuna_getbyte() {
 	struct timespec tr0, tr1, wc0, wc1;
 	fortuna_times(&wc0, &tr0);
 
 	/** set handler and schedule alarm */
-	signal(SIGALRM, fortuna_handler);
-	ualarm(DELAY);
+	fortuna_flag = 1;
+	pthread_t thread;
+	pthread_create(&thread, NULL,
+		       (void*) fortuna_signaler, NULL);
 	/** wait for signal */
 	long int count = 0;
 	while(fortuna_flag)
 		count += 1;
-	fortuna_flag = 1;
+	pthread_join(thread, NULL);
 	/** read stop times */
 	fortuna_times(&wc1, &tr1);
 	/** return random byte */
-	int tmp = diff(diff(tr0, tr1), diff(wc0, wc1)).tv_nsec + count;
+	long int tmp = diff(diff(tr0, tr1), diff(wc0, wc1)).tv_nsec;
 	u08b_t ent = 0;
 	while(tmp) {
 		ent ^= tmp & 255;
 		tmp >>= 8;
+	}
+	while(count) {
+		ent ^= count & 255;
+		count >>= 8;
 	}
 	return ent;
 }
@@ -95,7 +103,6 @@ void* fortuna_thread(fortuna_thread_ctx *ctx) {
 
 
 void fortuna_benchmark() {
-	DELAY = 20;
 	u08b_t counts[16];
 	int i,j,rnd;
 
