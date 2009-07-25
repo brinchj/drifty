@@ -45,11 +45,6 @@ void* drifty_janitor(drifty_ctx *ctx) {
 		// extract entropy
 		fortuna_get(&ctx->fortuna_ctx, ctx->updates, buf);
 
-		// expand entropy
-		memcpy(&buf[32], buf, 32);
-		memcpy(&buf[64], buf, 32);
-		memcpy(&buf[96], buf, 32);
-
 		// add entropy to prng
 		drifty_add_b(ctx, buf);
 
