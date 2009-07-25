@@ -19,7 +19,7 @@
 typedef struct {
 	pthread_mutex_t   mutex;
 	unsigned int      updates;
-	Skein_256_Ctxt_t  state;
+	Skein1024_Ctxt_t  state;
 } fortuna_pool_t;
 
 typedef struct {
@@ -37,11 +37,11 @@ typedef struct {
 /** initialize PRNG */
 void fortuna_init(fortuna_ctx *ctx, int mask);
 
-/** get 256-bits output from PRNG */
-void fortuna_get(fortuna_ctx *ctx, u64b_t r, u08b_t out[32]);
+/** get 1024-bit output from PRNG */
+void fortuna_get(fortuna_ctx *ctx, u64b_t round, u08b_t out[128]);
 
-/** get full 32*256 bit state */
-void fortuna_full(fortuna_ctx *ctx, u08b_t out[1024]);
+/** get full 32*1024 bit state */
+void fortuna_full(fortuna_ctx *ctx, u08b_t out[4096]);
 
 
 #include "fortuna.c"

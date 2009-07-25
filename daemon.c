@@ -42,8 +42,11 @@ int main() {
 	drifty_init(&ctx, "/var/tmp/drifty.seed");
 
 	u08b_t buffer[BLOCK_SIZE];
-	while(1) {
+	while(0) {
 		drifty_block(&ctx, buffer);
 		random_add_entropy(buffer, BLOCK_SIZE);
 	}
+	int i;
+	for(i = 0; i < 1024*16; i++)
+		drifty_block(&ctx, buffer);
 }

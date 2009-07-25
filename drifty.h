@@ -13,8 +13,13 @@
 typedef struct {
 	char*       seed;
 	u64b_t      count;
+	u64b_t      updates;
+
 	u08b_t      state[STATE_SIZE];
 	fortuna_ctx fortuna_ctx;
+	pthread_t   janitor;
+
+	pthread_mutex_t lock;
 } drifty_ctx;
 
 

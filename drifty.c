@@ -6,9 +6,13 @@ void drifty_hash(drifty_ctx *ctx,
 		      u08b_t out[],           size_t size_out) {
 	// increment counter
 	ctx->count += 1;
+	// generate key from counters
+	u08b_t key[sizeof(ctx->count) + sizeof(ctx->updates)];
+	memcpy(key, &ctx->count, sizeof(ctx->count));
+	memcpy(&key[sizeof(ctx->count)], &ctx->updates, sizeof(ctx->updates));
 	// compute hash using conter as key
 	drifty_hash_key(ctx, data, size_in,
-			(u08b_t*) &ctx->count, sizeof(ctx->count),
+			key, sizeof(key),
 			out, size_out);
 }
 void drifty_hash_key(drifty_ctx *ctx,
@@ -22,6 +26,34 @@ void drifty_hash_key(drifty_ctx *ctx,
 	// cleanup
 	memset(&s, 0, sizeof(s));
 }
+
+
+void* drifty_janitor(drifty_ctx *ctx) {
+	u08b_t buf[128];
+	while(1) {
+		// wait for updates, at least 1 second
+		do {
+			sleep(1);
+		} while(ctx->fortuna_ctx.pools[0]->updates == 0) ;
+
+		// take lock
+		pthread_mutex_lock(&ctx->lock);
+
+		// increment counter
+		ctx->updates += 1;
+
+		// extract entropy
+		fortuna_get(&ctx->fortuna_ctx, ctx->updates, buf);
+
+		// add entropy to prng
+		drifty_add_b(ctx, buf);
+
+		// cleanup
+		memset(buf, 0, 32);
+		pthread_mutex_unlock(&ctx->lock);
+	}
+}
+
 
 void drifty_init(drifty_ctx *ctx, char* fseed) {
 	int i,j;
@@ -44,7 +76,7 @@ void drifty_init(drifty_ctx *ctx, char* fseed) {
 
 	/** fill state with entropy */
 	printf("> collect entropy    %3.2f", 0.0);
-	for(j = 0; j < STATE_SIZE; j++) {
+	for(j = 0; 0 && j < STATE_SIZE; j++) {
 		// add entropy
 		for(i = 0; i < STATE_SIZE; i++)
 			ctx->state[i] ^= fortuna_getwbyte();
@@ -67,6 +99,11 @@ void drifty_init(drifty_ctx *ctx, char* fseed) {
 	fwrite(buffer, BLOCK_SIZE, 1, fout);
 	fclose(fout);
 	memset(buffer, 0, BLOCK_SIZE);
+
+	/** init and start janitor */
+	ctx->updates = 0;
+	pthread_mutex_init(&ctx->lock, NULL);
+	pthread_create(&ctx->janitor, NULL, (void*) drifty_janitor, ctx);
 }
 
 /** add variable amount of entropy to the internal state */
@@ -97,6 +134,7 @@ void drifty_mix(drifty_ctx *ctx) {
 /** generate one block of output */
 void drifty_block(drifty_ctx *ctx, u08b_t *out) {
 	u08b_t buffer[BLOCK_SIZE];
+	pthread_mutex_lock(&ctx->lock);
 
 	/** generate output */
 	drifty_hash(ctx, ctx->state, STATE_SIZE, buffer, BLOCK_SIZE);
@@ -108,5 +146,6 @@ void drifty_block(drifty_ctx *ctx, u08b_t *out) {
 	memcpy(out, buffer, BLOCK_SIZE);
 
 	/** cleanup */
+	pthread_mutex_unlock(&ctx->lock);
 	memset(buffer, 0, STATE_SIZE);
 }

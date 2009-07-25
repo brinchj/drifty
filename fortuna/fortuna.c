@@ -86,7 +86,7 @@ void fortuna_collector(fortuna_ctx *ctx, u08b_t id) {
 		pthread_mutex_lock(&ctx->pools[i]->mutex);
 
 		/** update pool */
-		Skein_256_Update(&ctx->pools[i]->state,
+		Skein1024_Update(&ctx->pools[i]->state,
 				 buffer, 2);
 		ctx->pools[i]->updates += 1;
 
@@ -140,11 +140,11 @@ void fortuna_init(fortuna_ctx *ctx, int mask) {
 		fortuna_pool_t *pool = malloc(sizeof(fortuna_pool_t));
 		pool->updates = 0;
 		pthread_mutex_init(&pool->mutex, NULL);
-		Skein_256_Init(&pool->state, 256);
+		Skein1024_Init(&pool->state, 256);
 		/** add pool id */
-		Skein_256_Update(&pool->state, (u08b_t*) &i, sizeof(u32b_t));
+		Skein1024_Update(&pool->state, (u08b_t*) &i, sizeof(u32b_t));
 		/** add current time */
-		Skein_256_Update(&pool->state, (u08b_t*) &ts,
+		Skein1024_Update(&pool->state, (u08b_t*) &ts,
 				 sizeof(struct timespec));
 		ctx->pools[i] = pool;
 	}
@@ -159,30 +159,33 @@ void fortuna_init(fortuna_ctx *ctx, int mask) {
 }
 
 
-void fortuna_get(fortuna_ctx *ctx, u64b_t r, u08b_t out[32]) {
+void fortuna_get(fortuna_ctx *ctx, u64b_t r, u08b_t out[128]) {
 	int i, j;
-	Skein_256_Ctxt_t state;
-	Skein_256_Init(&state, 256);
-	u08b_t buffer[32];
+	Skein1024_Ctxt_t state;
+	Skein1024_Init(&state, 1024);
+	u08b_t buffer[128];
 	u08b_t mark[2] = {255, 255};
+	int bits = 0;
 	for(i = 0; i < FORTUNA_POOL_NUM; i++) {
 		if (r & ((1<<i)-1)) {
 			break;
 		}
-		printf("%d\n", i);
+		bits += 1 << i;
 		pthread_mutex_lock(&ctx->pools[i]->mutex);
-		Skein_256_Final(&ctx->pools[i]->state, buffer);
-		Skein_256_Update(&state, buffer, 32);
-		Skein_256_Update(&ctx->pools[i]->state, mark, 2);
+		Skein1024_Final(&ctx->pools[i]->state, buffer);
+		Skein1024_Update(&state, buffer, 32);
+		Skein1024_Update(&ctx->pools[i]->state, mark, 2);
 		ctx->pools[i]->updates = 0;
 		pthread_mutex_unlock(&ctx->pools[i]->mutex);
 	}
-	Skein_256_Final(&state, out);
+	if(bits > 64)
+		printf("added %4d bits of entropy\n", bits);
+	Skein1024_Final(&state, out);
 }
 
 
-void fortuna_full(fortuna_ctx *ctx, u08b_t out[1024]) {
+void fortuna_full(fortuna_ctx *ctx, u08b_t out[4096]) {
 	int i;
 	for(i = 0; i < 32; i++)
-		Skein_256_Final(&ctx->pools[i]->state, &out[i*32]);
+		Skein1024_Final(&ctx->pools[i]->state, &out[i*128]);
 }
