@@ -45,6 +45,11 @@ void* drifty_janitor(drifty_ctx *ctx) {
 		// extract entropy
 		fortuna_get(&ctx->fortuna_ctx, ctx->updates, buf);
 
+		// expand entropy
+		memcpy(&buf[32], buf, 32);
+		memcpy(&buf[64], buf, 32);
+		memcpy(&buf[96], buf, 32);
+
 		// add entropy to prng
 		drifty_add_b(ctx, buf);
 
@@ -76,7 +81,7 @@ void drifty_init(drifty_ctx *ctx, char* fseed) {
 
 	/** fill state with entropy */
 	printf("> collect entropy    %3.2f", 0.0);
-	for(j = 0; 0 && j < STATE_SIZE; j++) {
+	for(j = 0; j < STATE_SIZE; j++) {
 		// add entropy
 		for(i = 0; i < STATE_SIZE; i++)
 			ctx->state[i] ^= fortuna_getwbyte();
