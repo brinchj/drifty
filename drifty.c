@@ -1,6 +1,28 @@
 #include<time.h>
 #include<stdio.h>
 
+void drifty_hash(drifty_ctx *ctx,
+		      u08b_t data[HASH_SIZE], size_t size_in,
+		      u08b_t out[],           size_t size_out) {
+	// increment counter
+	ctx->count += 1;
+	// compute hash using conter as key
+	drifty_hash_key(ctx, data, size_in,
+			(u08b_t*) &ctx->count, sizeof(ctx->count),
+			out, size_out);
+}
+void drifty_hash_key(drifty_ctx *ctx,
+		     u08b_t data[], size_t size_in,
+		     u08b_t key[],  size_t ks,
+		     u08b_t out[],  size_t size_out) {
+	// compute hash
+	hash_init(s, size_out*8, key, ks*8);
+	hash_update(s, data, size_in*8);
+	hash_final(s, out);
+	// cleanup
+	memset(&s, 0, sizeof(s));
+}
+
 void drifty_init(drifty_ctx *ctx, char* fseed) {
 	int i,j;
 
@@ -44,72 +66,47 @@ void drifty_init(drifty_ctx *ctx, char* fseed) {
 	FILE* fout = fopen("/var/tmp/drifty.seed.new", "w");
 	fwrite(buffer, BLOCK_SIZE, 1, fout);
 	fclose(fout);
+	memset(buffer, 0, BLOCK_SIZE);
 }
 
-
+/** add variable amount of entropy to the internal state */
 void drifty_add(drifty_ctx *ctx, u08b_t ent[], size_t size) {
 	int i;
-	for(i = 0; i < size; i+= 32) {
-		drifty_add_32b(ctx, &ent[i]);
-	}
+	for(i = 0; i < size; i+= HASH_SIZE)
+		drifty_add_b(ctx, &ent[i]);
 }
 
-void drifty_add_32b(drifty_ctx *ctx, u08b_t ent[32]) {
-	u08b_t buf[64];
-	ECRYPT_encrypt_blocks(&ctx->stream_ctx, buf, buf, 1);
-
-	Skein_256_Ctxt_t state;
-	Skein_256_Init(&state, 512);
-	Skein_256_Update(&state, buf, 64);
-	Skein_256_Update(&state, ent, 32);
-	Skein_256_Final(&state, buf);
-
-	ECRYPT_keysetup(&ctx->stream_ctx, buf, 256, 64);
-	ECRYPT_ivsetup(&ctx->stream_ctx, &buf[32]);
-	memset(buf, 0, sizeof(buf));
-
-	drifty_mix(ctx);
+/** add 128 bytes (1024 bit) of entropy to the internal state */
+void drifty_add_b(drifty_ctx *ctx, u08b_t ent[HASH_SIZE]) {
+	int i;
+	for(i = 0; i < STATE_SIZE; i += HASH_SIZE)
+		drifty_hash_key(ctx, ent, HASH_SIZE,
+				&ctx->state[i], HASH_SIZE,
+				&ctx->state[i], HASH_SIZE);
 }
 
 
+/** mix ctx->state in a non-reversable manner */
 void drifty_mix(drifty_ctx *ctx) {
-	u08b_t buffer[BLOCK_SIZE];
-	drifty_block(ctx, buffer);
-	drifty_block(ctx, buffer);
+	u08b_t key[HASH_SIZE];
+	drifty_hash(ctx, ctx->state, STATE_SIZE, key, HASH_SIZE);
+	drifty_add_b(ctx, key);
+	memset(key, 0, HASH_SIZE);
 }
 
-
+/** generate one block of output */
 void drifty_block(drifty_ctx *ctx, u08b_t *out) {
-	u08b_t buffer[STATE_SIZE/2 + BLOCK_SIZE];
+	u08b_t buffer[BLOCK_SIZE];
 
-	/** increment state counter */
-	ctx->count += 1;
+	/** generate output */
+	drifty_hash(ctx, ctx->state, STATE_SIZE, buffer, BLOCK_SIZE);
 
-	/** compute expanded hash of counter and internal state */
-	Skein1024_Ctxt_t state;
-	Skein1024_Init(&state, STATE_SIZE*8/2 + BLOCK_SIZE*8);
-	Skein1024_Update(&state, (u08b_t*) &ctx->count, sizeof(u64b_t));
-	Skein1024_Update(&state, ctx->state, STATE_SIZE);
-	Skein1024_Final(&state, buffer);
+	/** mix internal state in a non-reversable manner */
+	drifty_mix(ctx);
 
-	/** update state and output */
-	const int flag = ctx->count & 1;
-	memcpy(buffer, &ctx->state[flag * STATE_SIZE/2], STATE_SIZE/2);
-	memcpy(out,    &buffer[STATE_SIZE/2], BLOCK_SIZE);
-
-	/** encrypt state */
-	ECRYPT_encrypt_blocks(&ctx->stream_ctx, ctx->state, ctx->state,
-			      STATE_SIZE/64);
-
-	/** change Salsa20 key */
-	u08b_t key_iv[64];
-	ECRYPT_encrypt_blocks(&ctx->stream_ctx, key_iv, key_iv, 1);
-	ECRYPT_keysetup(&ctx->stream_ctx, key_iv, 256, 64);
-	ECRYPT_ivsetup(&ctx->stream_ctx, &key_iv[32]);
+	/** copy output */
+	memcpy(out, buffer, BLOCK_SIZE);
 
 	/** cleanup */
-	memset(buffer, 0, sizeof(buffer));
-	memset(&state, 0, sizeof(state));
-	memset(key_iv, 0, sizeof(key_iv));
-
+	memset(buffer, 0, STATE_SIZE);
 }
