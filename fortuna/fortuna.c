@@ -31,9 +31,16 @@ struct timespec fortuna_times(struct timespec *wc,
 /** Simple RNG based on Time Drift */
 int DELAY = 20;
 
+void fortuna_sleep(size_t nanos) {
+	struct timespec ts;
+	ts.tv_sec  = 0;
+	ts.tv_nsec = nanos;
+	while (nanosleep(&ts, &ts)) ;
+}
+
 volatile sig_atomic_t fortuna_flag = 1;
 void fortuna_signaler() {
-	usleep(DELAY);
+	fortuna_sleep(DELAY);
 	fortuna_flag = 0;
 	pthread_exit(NULL);
 }
@@ -55,6 +62,7 @@ u08b_t fortuna_getbyte() {
 	/** read stop times */
 	fortuna_times(&wc1, &tr1);
 	/** return random byte */
+	//printf("%ld, %ld\n", diff(wc0, wc1).tv_nsec, count);
 	long int tmp = diff(diff(tr0, tr1), diff(wc0, wc1)).tv_nsec;
 	u08b_t ent = 0;
 	while(tmp) {
