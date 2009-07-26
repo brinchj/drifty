@@ -1,0 +1,5 @@
+Building the software will produce a single binary, called "drifty", which
+acts as a daemon, feeding /dev/random with fresh entropy.
+
+Note that a file, /var/tmp/drifty.seed (possibly emtpy), must exist prior
+to running the daemon.

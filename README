@@ -1,0 +1,20 @@
+Drifty,
+A Cryptographically Secure Non-Deterministic Random Number Generator based on Time Drift
+
+* Authors
+ Johan Sejr Brinch Nielsen <zerrez@gmail.com>
+
+* Versioning
+ No versioning system exists yet. All versions are considered UNSTABLE.
+
+* Building
+ No cross-platform building system has been applied yet.
+
+* Licensing
+ Please see COPYING.
+
+* List of files
+  AUTHORS: Contains a list of authors along with contact information and current roles
+  COPYING: Contains license information
+  INSTALL: Contains installation information
+  README:  This file
